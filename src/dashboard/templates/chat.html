@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ contact.name or contact.wa_id }} <span class="muted">+{{ contact.wa_id }}</span>
+  <span class="pill {{ 'sent' if in_window else 'cancelled' }}">{{ 'ventana 24 h abierta' if in_window else 'fuera de ventana: solo plantillas' }}</span></h2>
+<section class="msgs">
+  {% for m in messages %}<div class="msg {{ m.role }}">{{ m.content }}<small>{{ m.created_at | local }}</small></div>{% endfor %}
+</section>
+{% endblock %}

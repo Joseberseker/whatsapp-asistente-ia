@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<div hx-get="/dashboard/parcial" hx-trigger="every 5s" hx-swap="innerHTML">
+  {% include "_panel.html" %}
+</div>
+{% endblock %}

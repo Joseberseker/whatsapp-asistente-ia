@@ -1,0 +1,32 @@
+<div class="cards">
+  {% for k, v in metrics.items() %}<div class="card"><div class="v">{{ v }}</div><div class="k">{{ k }}</div></div>{% endfor %}
+</div>
+<div class="grid">
+  <section>
+    <h2>Conversaciones</h2>
+    <table>
+      <tr><th>Contacto</th><th>Último mensaje</th><th>Activo</th></tr>
+      {% for c in contacts %}
+      <tr><td><a href="/dashboard/chat/{{ c.wa_id }}">{{ c.name or c.wa_id }}</a><div class="muted">+{{ c.wa_id }}</div></td>
+          <td>{{ (c.last or "")[:60] }}</td><td class="muted">{{ c.last_inbound_at | local }}</td></tr>
+      {% else %}<tr><td colspan="3" class="muted">Aún no hay conversaciones. Escríbele al número de prueba.</td></tr>{% endfor %}
+    </table>
+  </section>
+  <section>
+    <h2>Mensajes por día</h2>
+    <div class="bars">
+      {% for d in per_day %}<div class="bar" title="{{ d.n }} mensajes">{{ d.n }}<i style="height:{{ d.pct }}%"></i>{{ d.day }}</div>
+      {% else %}<span class="muted">Sin datos todavía.</span>{% endfor %}
+    </div>
+  </section>
+</div>
+<section style="margin-top:16px">
+  <h2>Recordatorios</h2>
+  <table>
+    <tr><th>#</th><th>Contacto</th><th>Texto</th><th>Programado</th><th>Estado</th></tr>
+    {% for r in reminders %}
+    <tr><td>{{ r.id }}</td><td>+{{ r.wa_id }}</td><td>{{ r.text }}</td><td>{{ r.due_at | local }}</td>
+        <td><span class="pill {{ r.status }}">{{ r.status }}</span></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">Sin recordatorios. Prueba con: "recuérdame tomar agua en 2 minutos".</td></tr>{% endfor %}
+  </table>
+</section>
