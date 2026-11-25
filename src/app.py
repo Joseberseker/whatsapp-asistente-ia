@@ -4,8 +4,9 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 
-from . import agent, config, store, whatsapp
+from . import agent, config, dashboard, store, whatsapp
 from .modules import reminders
 
 log = logging.getLogger("asistente")
@@ -19,6 +20,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="WhatsApp Asistente IA", lifespan=lifespan)
+app.include_router(dashboard.router)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/dashboard")
 
 
 @app.get("/webhook")

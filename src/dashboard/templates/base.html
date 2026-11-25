@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistente WhatsApp · Dashboard</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <style>
+    :root { --bg:#0b141a; --panel:#111b21; --line:#222d34; --text:#e9edef; --muted:#8696a0; --green:#00a884; --red:#f15c6d; --amber:#ffb84d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:16px 28px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; }
+    header b { color:var(--green); }
+    main { padding:24px 28px; max-width:1200px; margin:auto; }
+    a { color:var(--green); text-decoration:none; }
+    .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:24px; }
+    .card, section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+    .card .v { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+    .card .k, .muted { color:var(--muted); font-size:13px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:800px) { .grid { grid-template-columns:1fr; } }
+    h2 { font-size:15px; margin:0 0 12px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    td, th { text-align:left; padding:8px 6px; border-top:1px solid var(--line); vertical-align:top; }
+    th { color:var(--muted); font-weight:500; border-top:0; }
+    .bars { display:flex; align-items:flex-end; gap:8px; height:120px; }
+    .bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:12px; color:var(--muted); }
+    .bar i { display:block; width:100%; background:var(--green); border-radius:4px 4px 0 0; min-height:2px; }
+    .pill { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid currentColor; }
+    .pending { color:var(--amber); } .sent { color:var(--green); } .failed { color:var(--red); } .cancelled { color:var(--muted); }
+    .msgs { display:flex; flex-direction:column; gap:8px; }
+    .msg { max-width:70%; padding:8px 12px; border-radius:10px; background:var(--panel); white-space:pre-wrap; }
+    .msg.assistant { align-self:flex-end; background:#005c4b; }
+    .msg small { display:block; color:var(--muted); font-size:11px; }
+  </style>
+</head>
+<body>
+  <header><b>●</b> Asistente WhatsApp IA <a href="/dashboard" style="margin-left:auto">Panel</a></header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>
