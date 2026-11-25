@@ -3,7 +3,7 @@ import logging
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 
-from . import config, whatsapp
+from . import config, store, whatsapp
 
 log = logging.getLogger("asistente")
 app = FastAPI(title="WhatsApp Asistente IA")
@@ -18,11 +18,19 @@ def verify(request: Request):
     raise HTTPException(403)
 
 
+def reply(wa_id: str, text: str) -> None:
+    whatsapp.send_text(wa_id, text)
+    store.record_outbound(wa_id, text)
+
+
 def handle_message(msg: dict) -> None:
-    if msg["text"] is None:
-        whatsapp.send_text(msg["from"], "Por ahora solo entiendo mensajes de texto 🙂")
+    if not store.first_time(msg["id"]):
         return
-    whatsapp.send_text(msg["from"], f"Eco: {msg['text']}")
+    store.record_inbound(msg["from"], msg["name"], msg["text"] or f"[{msg['type']}]")
+    if msg["text"] is None:
+        reply(msg["from"], "Por ahora solo entiendo mensajes de texto 🙂")
+        return
+    reply(msg["from"], f"Eco: {msg['text']}")
 
 
 def _safe_handle(msg: dict) -> None:
