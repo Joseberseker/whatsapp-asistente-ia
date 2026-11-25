@@ -1,6 +1,7 @@
 """Agente conversacional: Gemini + historial + function calling sobre las tools de los módulos."""
 
 import logging
+import time
 from datetime import datetime
 
 from google import genai
@@ -40,7 +41,9 @@ def _run_tool(wa_id: str, call: types.FunctionCall) -> str:
     if fn is None:
         return f"Error: la herramienta {call.name} no existe."
     try:
-        return fn(wa_id, **(call.args or {}))
+        result = fn(wa_id, **(call.args or {}))
+        log.info("Tool %s(%s) → %s", call.name, call.args, result)
+        return result
     except Exception as e:  # el error vuelve a la IA para que se lo explique al usuario
         log.exception("Tool %s falló", call.name)
         return f"Error: {e}"
@@ -52,7 +55,10 @@ def reply(wa_id: str) -> str:
                 for m in store.history(wa_id)]
     system = SYSTEM.format(now=datetime.now(config.TZ).strftime("%A %Y-%m-%d %H:%M"), tz=config.TZ.key)
     for _ in range(MAX_TOOL_ROUNDS):
+        t0 = time.monotonic()
         resp = _generate(contents, system, modules.TOOLS)
+        log.info("Gemini respondió en %.1fs%s", time.monotonic() - t0,
+                 f" con tools {[c.name for c in resp.function_calls]}" if resp.function_calls else "")
         if not resp.function_calls:
             return (resp.text or "").strip() or "Perdón, no entendí. ¿Me lo repites?"
         contents.append(resp.candidates[0].content)

@@ -38,3 +38,22 @@ def test_post_dispatches_message(monkeypatch):
     body = inbound("hola")
     assert client.post("/webhook", content=body, headers={"X-Hub-Signature-256": sign(body)}).status_code == 200
     assert seen[0]["text"] == "hola"
+
+
+def test_message_marks_read_typing_and_replies(monkeypatch):
+    calls = []
+    monkeypatch.setattr(whatsapp, "_post", lambda payload: calls.append(payload) or {})
+    monkeypatch.setattr(app_module.agent, "reply", lambda wa_id: "¡Hola!")
+    msg = whatsapp.parse_messages(json.loads(inbound("hola", msg_id="wamid.T")))[0]
+    app_module.handle_message(msg)
+    assert calls[0] == {"status": "read", "message_id": "wamid.T", "typing_indicator": {"type": "text"}}
+    assert calls[1]["text"] == {"body": "¡Hola!"}
+
+
+def test_typing_failure_does_not_block_reply(monkeypatch):
+    sent = []
+    monkeypatch.setattr(whatsapp, "mark_read_typing", lambda mid: 1 / 0)
+    monkeypatch.setattr(whatsapp, "send_text", lambda to, body: sent.append(body))
+    monkeypatch.setattr(app_module.agent, "reply", lambda wa_id: "ok")
+    app_module.handle_message(whatsapp.parse_messages(json.loads(inbound(msg_id="wamid.U")))[0])
+    assert sent == ["ok"]

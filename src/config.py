@@ -22,5 +22,7 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 TZ = ZoneInfo(os.environ.get("TZ", "America/Santiago"))
 DB_PATH = os.environ.get("DB_PATH", str(BASE_DIR / "asistente.db"))
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "admin")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")

@@ -9,6 +9,8 @@ from fastapi.responses import RedirectResponse
 from . import agent, config, dashboard, store, whatsapp
 from .modules import reminders
 
+logging.basicConfig(level=config.LOG_LEVEL, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s", datefmt="%H:%M:%S")
+logging.getLogger("httpx").setLevel(logging.WARNING)  # evita loguear URLs de cada request
 log = logging.getLogger("asistente")
 
 
@@ -33,7 +35,9 @@ def verify(request: Request):
     """Handshake que hace Meta al configurar el webhook."""
     q = request.query_params
     if q.get("hub.mode") == "subscribe" and config.WHATSAPP_VERIFY_TOKEN and q.get("hub.verify_token") == config.WHATSAPP_VERIFY_TOKEN:
+        log.info("Webhook verificado por Meta")
         return Response(q.get("hub.challenge", ""), media_type="text/plain")
+    log.warning("Verificación de webhook rechazada (verify_token no coincide)")
     raise HTTPException(403)
 
 
@@ -44,7 +48,13 @@ def reply(wa_id: str, text: str) -> None:
 
 def handle_message(msg: dict) -> None:
     if not store.first_time(msg["id"]):
+        log.info("Mensaje %s duplicado, se ignora", msg["id"])
         return
+    log.info("← %s (%s) %s: %s", msg["from"], msg["name"], msg["type"], msg["text"])
+    try:
+        whatsapp.mark_read_typing(msg["id"])
+    except Exception:
+        log.warning("No se pudo mostrar 'escribiendo…'", exc_info=True)  # no debe impedir la respuesta
     store.record_inbound(msg["from"], msg["name"], msg["text"] or f"[{msg['type']}]")
     if msg["text"] is None:
         reply(msg["from"], "Por ahora solo entiendo mensajes de texto 🙂")
@@ -63,8 +73,14 @@ def _safe_handle(msg: dict) -> None:
 async def receive(request: Request, background: BackgroundTasks):
     body = await request.body()
     if not whatsapp.valid_signature(body, request.headers.get("X-Hub-Signature-256")):
+        log.warning("POST /webhook con firma inválida: revisa WHATSAPP_APP_SECRET")
         raise HTTPException(401)
+    payload = json.loads(body)
+    log.debug("Webhook payload: %s", payload)
+    msgs = whatsapp.parse_messages(payload)
+    if not msgs:
+        log.debug("Webhook sin mensajes (status de entrega/lectura)")
     # Responder 200 rápido: Meta reintenta si tardamos, el trabajo va en segundo plano.
-    for msg in whatsapp.parse_messages(json.loads(body)):
+    for msg in msgs:
         background.add_task(_safe_handle, msg)
     return {"ok": True}
