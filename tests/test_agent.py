@@ -26,3 +26,21 @@ def test_unknown_tool_and_errors_go_back_to_model(monkeypatch):
     agent.reply("569")
     assert "no existe" in seen[1][-1].parts[0].function_response.response["result"]
     assert "fecha inválida" in seen[2][-1].parts[0].function_response.response["result"]
+
+
+def test_falls_back_to_second_model(monkeypatch):
+    from types import SimpleNamespace
+    from tests.fakes import text as text_resp
+    tried = []
+
+    def gen(model, contents, config):
+        tried.append(model)
+        if model == "principal":
+            raise RuntimeError("429 RESOURCE_EXHAUSTED")
+        return text_resp("respaldo ok")
+    monkeypatch.setattr(agent, "_client", SimpleNamespace(models=SimpleNamespace(generate_content=gen)))
+    monkeypatch.setattr(agent.config, "GEMINI_MODEL", "principal")
+    monkeypatch.setattr(agent.config, "GEMINI_FALLBACK_MODELS", "respaldo")
+    store.record_inbound("569", "Jose", "hola")
+    assert agent.reply("569") == "respaldo ok"
+    assert tried == ["principal", "respaldo"]
