@@ -1,12 +1,24 @@
+import asyncio
 import json
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 
 from . import agent, config, store, whatsapp
+from .modules import reminders
 
 log = logging.getLogger("asistente")
-app = FastAPI(title="WhatsApp Asistente IA")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(reminders.loop())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="WhatsApp Asistente IA", lifespan=lifespan)
 
 
 @app.get("/webhook")
