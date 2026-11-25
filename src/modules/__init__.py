@@ -6,7 +6,9 @@ Cada módulo expone:
 Agregar un módulo = crear el archivo y sumarlo a MODULES.
 """
 
-MODULES = []
+from . import reminders
+
+MODULES = [reminders]
 
 TOOLS = [t for m in MODULES for t in m.TOOLS]
 HANDLERS = {name: fn for m in MODULES for name, fn in m.HANDLERS.items()}
