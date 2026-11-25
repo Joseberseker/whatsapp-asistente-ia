@@ -3,7 +3,7 @@ import logging
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 
-from . import config, store, whatsapp
+from . import agent, config, store, whatsapp
 
 log = logging.getLogger("asistente")
 app = FastAPI(title="WhatsApp Asistente IA")
@@ -30,7 +30,7 @@ def handle_message(msg: dict) -> None:
     if msg["text"] is None:
         reply(msg["from"], "Por ahora solo entiendo mensajes de texto 🙂")
         return
-    reply(msg["from"], f"Eco: {msg['text']}")
+    reply(msg["from"], agent.reply(msg["from"]))
 
 
 def _safe_handle(msg: dict) -> None:
