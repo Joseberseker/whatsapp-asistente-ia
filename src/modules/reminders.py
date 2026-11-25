@@ -68,6 +68,7 @@ def send_due() -> int:
         due = c.execute("SELECT id, wa_id, text FROM reminders WHERE status = 'pending' AND due_at <= ?",
                         (_iso(store.now()),)).fetchall()
     for r in due:
+        log.info("Enviando recordatorio #%s a %s", r["id"], r["wa_id"])
         status = "sent"
         try:
             if store.in_window(r["wa_id"]):

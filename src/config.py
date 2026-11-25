@@ -17,10 +17,13 @@ WHATSAPP_TEMPLATE_LANG = os.environ.get("WHATSAPP_TEMPLATE_LANG", "es")
 GRAPH_API_URL = os.environ.get("GRAPH_API_URL", "https://graph.facebook.com/v23.0")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+GEMINI_FALLBACK_MODELS = os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.5-flash-lite,gemma-4-26b-a4b-it")  # en orden; vacío = sin respaldo
 
 TZ = ZoneInfo(os.environ.get("TZ", "America/Santiago"))
 DB_PATH = os.environ.get("DB_PATH", str(BASE_DIR / "asistente.db"))
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
 DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "admin")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")

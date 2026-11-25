@@ -1,6 +1,7 @@
 """Agente conversacional: Gemini + historial + function calling sobre las tools de los módulos."""
 
 import logging
+import time
 from datetime import datetime
 
 from google import genai
@@ -19,20 +20,35 @@ Si algo no lo puedes hacer, dilo claramente."""
 _client = None
 
 
+def _models() -> list[tuple[str, int]]:
+    """(modelo, timeout en s): el principal y luego los de respaldo, cada uno con su propia cuota."""
+    fallbacks = [m.strip() for m in config.GEMINI_FALLBACK_MODELS.split(",") if m.strip()]
+    return [(config.GEMINI_MODEL, 20)] + [(m, 45) for m in fallbacks]
+
+
 def _generate(contents, system: str, tools: list[dict]) -> types.GenerateContentResponse:
     global _client
     _client = _client or genai.Client(api_key=config.GEMINI_API_KEY)
     decls = [types.FunctionDeclaration(name=t["name"], description=t["description"],
                                        parameters_json_schema=t["parameters"]) for t in tools]
-    return _client.models.generate_content(
-        model=config.GEMINI_MODEL,
-        contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=system,
-            tools=[types.Tool(function_declarations=decls)] if decls else None,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-        ),
-    )
+    error = None
+    for model, timeout in _models():
+        try:
+            return _client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system,
+                    tools=[types.Tool(function_declarations=decls)] if decls else None,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                    # sin timeout el SDK puede esperar indefinidamente; sin reintentos, pasamos al respaldo de inmediato
+                    http_options=types.HttpOptions(timeout=timeout * 1000, retry_options=types.HttpRetryOptions(attempts=1)),
+                ),
+            )
+        except Exception as e:  # 429 cuota, 503 saturado, timeout...
+            log.warning("Modelo %s falló (%s), probando el siguiente", model, str(e)[:160])
+            error = e
+    raise error
 
 
 def _run_tool(wa_id: str, call: types.FunctionCall) -> str:
@@ -40,7 +56,9 @@ def _run_tool(wa_id: str, call: types.FunctionCall) -> str:
     if fn is None:
         return f"Error: la herramienta {call.name} no existe."
     try:
-        return fn(wa_id, **(call.args or {}))
+        result = fn(wa_id, **(call.args or {}))
+        log.info("Tool %s(%s) → %s", call.name, call.args, result)
+        return result
     except Exception as e:  # el error vuelve a la IA para que se lo explique al usuario
         log.exception("Tool %s falló", call.name)
         return f"Error: {e}"
@@ -52,12 +70,16 @@ def reply(wa_id: str) -> str:
                 for m in store.history(wa_id)]
     system = SYSTEM.format(now=datetime.now(config.TZ).strftime("%A %Y-%m-%d %H:%M"), tz=config.TZ.key)
     for _ in range(MAX_TOOL_ROUNDS):
+        t0 = time.monotonic()
         resp = _generate(contents, system, modules.TOOLS)
+        log.info("%s respondió en %.1fs%s", resp.model_version or "Gemini", time.monotonic() - t0,
+                 f" con tools {[c.name for c in resp.function_calls]}" if resp.function_calls else "")
         if not resp.function_calls:
             return (resp.text or "").strip() or "Perdón, no entendí. ¿Me lo repites?"
         contents.append(resp.candidates[0].content)
         contents.append(types.Content(role="user", parts=[
-            types.Part.from_function_response(name=c.name, response={"result": _run_tool(wa_id, c)})
+            # el id enlaza cada resultado con su llamada (los modelos Gemini 3 lo exigen)
+            types.Part(function_response=types.FunctionResponse(id=c.id, name=c.name, response={"result": _run_tool(wa_id, c)}))
             for c in resp.function_calls
         ]))
     return "Perdón, me enredé con esa solicitud. ¿Puedes intentarlo de otra forma?"
