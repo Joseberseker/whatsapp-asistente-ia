@@ -10,7 +10,8 @@ from . import agent, config, dashboard, store, whatsapp
 from .modules import reminders
 
 logging.basicConfig(level=config.LOG_LEVEL, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s", datefmt="%H:%M:%S")
-logging.getLogger("httpx").setLevel(logging.WARNING)  # evita loguear URLs de cada request
+for noisy in ("httpx", "httpx2"):  # evita loguear la URL de cada request
+    logging.getLogger(noisy).setLevel(logging.WARNING)
 log = logging.getLogger("asistente")
 
 
@@ -59,7 +60,12 @@ def handle_message(msg: dict) -> None:
     if msg["text"] is None:
         reply(msg["from"], "Por ahora solo entiendo mensajes de texto 🙂")
         return
-    reply(msg["from"], agent.reply(msg["from"]))
+    try:
+        answer = agent.reply(msg["from"])
+    except Exception:
+        log.exception("Falló el agente (Gemini)")
+        answer = "Uy, tuve un problema técnico procesando tu mensaje 😅 ¿Me lo envías de nuevo en un momento?"
+    reply(msg["from"], answer)
 
 
 def _safe_handle(msg: dict) -> None:

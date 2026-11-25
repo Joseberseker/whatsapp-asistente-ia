@@ -63,7 +63,8 @@ def reply(wa_id: str) -> str:
             return (resp.text or "").strip() or "Perdón, no entendí. ¿Me lo repites?"
         contents.append(resp.candidates[0].content)
         contents.append(types.Content(role="user", parts=[
-            types.Part.from_function_response(name=c.name, response={"result": _run_tool(wa_id, c)})
+            # el id enlaza cada resultado con su llamada (los modelos Gemini 3 lo exigen)
+            types.Part(function_response=types.FunctionResponse(id=c.id, name=c.name, response={"result": _run_tool(wa_id, c)}))
             for c in resp.function_calls
         ]))
     return "Perdón, me enredé con esa solicitud. ¿Puedes intentarlo de otra forma?"

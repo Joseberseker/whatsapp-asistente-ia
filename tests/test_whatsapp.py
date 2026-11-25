@@ -57,3 +57,12 @@ def test_typing_failure_does_not_block_reply(monkeypatch):
     monkeypatch.setattr(app_module.agent, "reply", lambda wa_id: "ok")
     app_module.handle_message(whatsapp.parse_messages(json.loads(inbound(msg_id="wamid.U")))[0])
     assert sent == ["ok"]
+
+
+def test_agent_failure_still_answers(monkeypatch):
+    sent = []
+    monkeypatch.setattr(whatsapp, "mark_read_typing", lambda mid: None)
+    monkeypatch.setattr(whatsapp, "send_text", lambda to, body: sent.append(body))
+    monkeypatch.setattr(app_module.agent, "reply", lambda wa_id: 1 / 0)
+    app_module.handle_message(whatsapp.parse_messages(json.loads(inbound(msg_id="wamid.V")))[0])
+    assert "problema técnico" in sent[0]
