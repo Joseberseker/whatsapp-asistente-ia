@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from .. import config, store, whatsapp
 
@@ -27,15 +27,22 @@ def _local(iso: str) -> str:
     return datetime.fromisoformat(iso).astimezone(config.TZ).strftime("%d/%m %H:%M")
 
 
-def create(wa_id: str, texto: str, fecha_hora: str) -> str:
-    try:
-        due = datetime.fromisoformat(fecha_hora)
-    except ValueError:
-        return f"Error: fecha_hora '{fecha_hora}' no tiene formato ISO."
-    if due.tzinfo is None:
-        due = due.replace(tzinfo=config.TZ)
+def create(wa_id: str, texto: str, fecha_hora: str | None = None, en_minutos: float | None = None) -> str:
+    # Los tiempos relativos se calculan aquí: la IA se equivoca sumando horas (se ancla en horas del historial).
+    if en_minutos is not None:
+        due = store.now().replace(microsecond=0) + timedelta(minutes=float(en_minutos))
+    elif fecha_hora:
+        try:
+            due = datetime.fromisoformat(fecha_hora)
+        except ValueError:
+            return f"Error: fecha_hora '{fecha_hora}' no tiene formato ISO."
+        if due.tzinfo is None:
+            due = due.replace(tzinfo=config.TZ)
+    else:
+        return "Error: indica fecha_hora o en_minutos."
     if due <= store.now():
-        return "Error: esa fecha ya pasó. Pide una fecha futura."
+        ahora = store.now().astimezone(config.TZ).strftime("%Y-%m-%d %H:%M")
+        return f"Error: esa fecha ya pasó (ahora son las {ahora}). Recalcula a partir de esta hora."
     with store.connect() as c:
         c.executescript(_SCHEMA)
         rid = c.execute("INSERT INTO reminders (wa_id, text, due_at, created_at) VALUES (?, ?, ?, ?)",
@@ -96,11 +103,14 @@ async def loop(every: int = 30) -> None:
 TOOLS = [
     {
         "name": "crear_recordatorio",
-        "description": "Programa un recordatorio que se le enviará al usuario por WhatsApp en la fecha y hora indicadas.",
+        "description": "Programa un recordatorio que se le enviará al usuario por WhatsApp. "
+                       "Para tiempos relativos ('en 10 minutos', 'en 2 horas') usa en_minutos; "
+                       "para una hora o fecha concreta ('a las 9', 'mañana 15:30') usa fecha_hora.",
         "parameters": {"type": "object", "properties": {
             "texto": {"type": "string", "description": "Qué hay que recordar, redactado breve."},
+            "en_minutos": {"type": "number", "description": "Minutos desde ahora, ej. 10 o 120."},
             "fecha_hora": {"type": "string", "description": "Fecha y hora local en ISO 8601, ej. 2026-11-26T09:00"},
-        }, "required": ["texto", "fecha_hora"]},
+        }, "required": ["texto"]},
     },
     {
         "name": "listar_recordatorios",
