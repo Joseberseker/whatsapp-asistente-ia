@@ -4,8 +4,16 @@ Asistente de WhatsApp con IA sobre la **WhatsApp Cloud API oficial de Meta**: un
 
 > Primer módulo: **recordatorios**. Le escribes "recuérdame pagar la luz mañana a las 9" y a esa hora te llega el mensaje.
 
-![Dashboard del asistente: métricas, conversaciones, mensajes por día y estado de los recordatorios](docs/img/dashboard.png)
-<sub>Dashboard de operación (datos de demostración). Se actualiza solo cada 5 s con HTMX.</sub>
+<table>
+  <tr>
+    <td width="30%" valign="top"><img src="docs/img/demo-whatsapp.jpeg" alt="Conversación real en WhatsApp: el usuario pide un recordatorio en lenguaje natural y el bot lo envía a la hora exacta"></td>
+    <td valign="top"><img src="docs/img/dashboard.png" alt="Dashboard del asistente: métricas, conversaciones, mensajes por día y estado de los recordatorios"></td>
+  </tr>
+  <tr>
+    <td><sub><b>Uso real en WhatsApp</b>: "recuérdame en 10 minutos…" → el recordatorio llega a las 18:52 en punto.</sub></td>
+    <td><sub><b>Dashboard de operación</b> (datos de demostración), se actualiza solo cada 5 s con HTMX.</sub></td>
+  </tr>
+</table>
 
 ## Arquitectura
 
