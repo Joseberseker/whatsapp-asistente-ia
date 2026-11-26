@@ -1,0 +1,15 @@
+# Servidor: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN en .env, ej. 129-146-10-20.sslip.io}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data  # certificados: si se pierden, Let's Encrypt limita cuántos puedes volver a pedir
+    depends_on: [asistente]
+
+volumes:
+  caddy_data:

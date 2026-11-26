@@ -57,6 +57,8 @@ Asistente de WhatsApp con IA sobre la **WhatsApp Cloud API oficial de Meta**: un
 3. Expón el webhook con `ngrok http --url=<tu-dominio> 8000`.
 4. Escríbele al número de prueba y abre `http://localhost:8000/dashboard`.
 
+**En producción 24/7** (VM gratis de Oracle + Caddy con HTTPS automático): ver [`docs/deploy.md`](docs/deploy.md).
+
 Tests: `.venv/bin/pytest` (Gemini y la Graph API van simulados, no hace falta ninguna credencial).
 
 ## Cómo agregar un módulo
